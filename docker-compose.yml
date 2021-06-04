@@ -18,7 +18,7 @@ services:
       - "9200:9200"
       - "9300:9300"
     environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ES_JAVA_OPTS: "-Xmx1024m -Xms256m"
       ELASTIC_PASSWORD: changeme
     networks:
       - elk
@@ -37,13 +37,17 @@ services:
         source: ./logstash/pipeline
         target: /usr/share/logstash/pipeline
         read_only: true
+      - type: bind
+        source: ./logstash/data
+        target: /data
+        read_only: true
     ports:
       - "5000:5000"
       - "9600:9600"
-    expose: 
+    expose:
       - "5044"
     environment:
-      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      LS_JAVA_OPTS: "-Xmx512m -Xms256m"
     networks:
       - elk
     depends_on:
@@ -65,49 +69,6 @@ services:
       - elk
     depends_on:
       - elasticsearch
-
-  app:
-    build : ./app
-    volumes:
-      - ./app/:/usr/src/app
-      - /usr/src/app/node_modules/ # make node_module empty in container
-    command: npm start
-    ports:
-      - "3000:3000"
-    networks:
-      - elk
-
-  nginx:
-    build: ./nginx
-    volumes:
-      - ./nginx/config:/etc/nginx/conf.d
-      - ./nginx/log:/var/log/nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    links:
-      - app:app
-    depends_on: 
-      - app
-    networks:
-      - elk
-
-  filebeat:
-    build: ./filebeat
-    entrypoint: "filebeat -e -strict.perms=false"
-    volumes:
-      - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml
-      - ./nginx/log:/var/log/nginx
-    networks:
-      - elk
-    depends_on: 
-      - app
-      - nginx
-      - logstash
-      - elasticsearch
-      - kibana
-    links: 
-      - logstash
 
 networks:
   elk:
